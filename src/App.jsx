@@ -10,6 +10,7 @@ import CreateCourse from './components/pages/CreateCourse'
 import Dashboard from './components/pages/Dashboard'
 import CourseDetail from './components/pages/CourseDetail'
 import { Loader2 } from 'lucide-react'
+import Register from './components/pages/Register'
 
 // Dashboard is now imported
 const ProtectedRoute = ({ children }) => {
@@ -30,7 +31,7 @@ export default function App() {
         <BrowserRouter>
             <Routes>
                 <Route path="/login" element={<Login />} />
-                <Route path="/register" element={<div className="p-8 text-center">Register Page (Coming Soon)</div>} />
+                <Route path="/register" element={<Register />} />
 
                 <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
                 <Route path="/academic-years" element={<ProtectedRoute><AcademicYearManagement /></ProtectedRoute>} />

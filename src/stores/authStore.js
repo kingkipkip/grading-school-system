@@ -52,6 +52,39 @@ export const useAuthStore = create((set) => ({
         return data
     },
 
+    signUp: async (email, password, fullName, role) => {
+        // 1. Create Auth User
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+                data: { full_name: fullName, role: role }
+            }
+        })
+        if (authError) throw authError
+
+        if (authData.user) {
+            // 2. Create Public Profile
+            const { error: profileError } = await supabase.from('users').insert([
+                {
+                    id: authData.user.id,
+                    email: email,
+                    full_name: fullName,
+                    role: role
+                }
+            ])
+
+            if (profileError) {
+                // Optional: Rollback auth user creation if profile fails? 
+                // For MVP, just throw error. User exists in Auth but not public table is a bad state, 
+                // but we can handle it by checking "if user && !profile" then force profile creation on login.
+                throw profileError
+            }
+        }
+
+        return authData
+    },
+
     signOut: async () => {
         await supabase.auth.signOut()
         set({ user: null, profile: null })
