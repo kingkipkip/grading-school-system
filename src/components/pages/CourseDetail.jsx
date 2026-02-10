@@ -5,7 +5,7 @@ import { useAuthStore } from '../../stores/authStore'
 import { ArrowLeft, Users, FileText, GraduationCap, Plus, Download, Settings } from 'lucide-react'
 import ImportStudents from './ImportStudents'
 import GradingGrid from './GradingGrid'
-import CourseGrades from './CourseGrades'
+import ExportSGSModal from './ExportSGSModal'
 
 export default function CourseDetail() {
   const { id } = useParams()
@@ -15,11 +15,14 @@ export default function CourseDetail() {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('students') // students, assignments, grades
   const [showImportModal, setShowImportModal] = useState(false)
+  const [showExportModal, setShowExportModal] = useState(false)
   const [students, setStudents] = useState([])
 
   useEffect(() => {
     fetchCourseData()
   }, [id])
+
+  // ... (existing code: fetchCourseData, Edit Modal State, handlers) ...
 
   const fetchCourseData = async () => {
     setLoading(true)
@@ -96,6 +99,12 @@ export default function CourseDetail() {
           {/* Teacher Actions */}
           {profile?.role === 'teacher' && (
             <div className="flex gap-2">
+              <button
+                onClick={() => setShowExportModal(true)}
+                className="ios-btn bg-green-50 text-green-700 border border-green-200 hover:bg-green-100"
+              >
+                <Download size={18} /> Export SGS
+              </button>
               <button
                 onClick={() => setShowImportModal(true)}
                 className="ios-btn bg-white border border-gray-200 text-gray-700 hover:bg-gray-50"
@@ -197,6 +206,16 @@ export default function CourseDetail() {
               fetchCourseData()
               // No need to close explicitly, component handles it with timeout
             }}
+          />
+        </div>
+      )}
+
+      {/* SGS Export Modal */}
+      {showExportModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <ExportSGSModal
+            courseId={id}
+            onClose={() => setShowExportModal(false)}
           />
         </div>
       )}
