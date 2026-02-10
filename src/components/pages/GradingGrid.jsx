@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
-import { Plus, Save, AlertCircle, FileText, Trash2, Edit3, Award } from 'lucide-react'
+import { Plus, Save, AlertCircle, FileText, Trash2, Edit3, Award, CheckSquare } from 'lucide-react'
 
 export default function GradingGrid({ courseId }) {
     const [students, setStudents] = useState([])
@@ -172,6 +172,29 @@ export default function GradingGrid({ courseId }) {
         setGradeUpdates(prev => ({ ...prev, [key]: { score: value, submission_status: 'submitted' } }))
     }
 
+    const markAllSubmitted = (assignId, type, maxScore) => {
+        if (!confirm('ยืนยันที่จะทำเครื่องหมาย "ส่งแล้ว" ให้กับนักเรียนทุกคนในรายการนี้?')) return
+
+        const updates = {}
+        // Determine score to use
+        let scoreToSet = 0
+        if (type === 'regular') {
+            scoreToSet = regularMaxScore
+        } else {
+            scoreToSet = maxScore || 0
+        }
+
+        students.forEach(student => {
+            const key = `${student.id}_${assignId}`
+            updates[key] = {
+                score: scoreToSet,
+                submission_status: 'submitted'
+            }
+        })
+
+        setGradeUpdates(prev => ({ ...prev, ...updates }))
+    }
+
     const handleStatusToggle = (studentId, assignId, currentStatus) => {
         // Use the DYNAMIC max score
         const maxScore = regularMaxScore
@@ -286,8 +309,17 @@ export default function GradingGrid({ courseId }) {
                             {/* Assignments Header */}
                             {assignments.map(a => (
                                 <th key={a.id} className="p-4 border-b min-w-[120px] text-center bg-blue-50/50">
-                                    <div className="font-bold text-gray-900">
-                                        {a.title}
+                                    <div className="font-bold text-gray-900 flex flex-col items-center">
+                                        <div className="flex items-center gap-1">
+                                            {a.title}
+                                            <button
+                                                onClick={() => markAllSubmitted(a.id, a.assignment_type, a.max_score)}
+                                                className="text-gray-400 hover:text-green-600 transition-colors"
+                                                title="Mark all as Submitted"
+                                            >
+                                                <CheckSquare size={14} />
+                                            </button>
+                                        </div>
                                         <div className="text-xs font-normal text-gray-500">
                                             {a.assignment_type === 'special'
                                                 ? `Special (${a.max_score})`
