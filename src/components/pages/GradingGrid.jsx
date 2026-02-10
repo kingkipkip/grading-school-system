@@ -63,7 +63,7 @@ export default function GradingGrid({ courseId }) {
                 course_id: courseId,
                 title: form.title,
                 assignment_type: form.type,
-                max_score: form.type === 'special' ? parseFloat(form.max_score || 0) : null
+                max_score: parseFloat(form.max_score || 0)
             }
             const { data, error } = await supabase.from('assignments').insert([payload]).select().single()
             if (data) {
@@ -102,7 +102,33 @@ export default function GradingGrid({ courseId }) {
     }
 
     const handleScoreChange = (key, value) => {
-        setGradeUpdates(prev => ({ ...prev, [key]: value }))
+        // For special assignments/exams where we just type numbers
+        setGradeUpdates(prev => ({ ...prev, [key]: { score: value, submission_status: 'submitted' } }))
+    }
+
+    const handleStatusToggle = (studentId, assignId, currentStatus, maxScore) => {
+        let newStatus = 'submitted'
+        let newScore = maxScore
+
+        if (currentStatus === 'missing') {
+            newStatus = 'submitted'
+            newScore = maxScore
+        } else if (currentStatus === 'submitted') {
+            newStatus = 'late'
+            newScore = maxScore * 0.8
+        } else if (currentStatus === 'late') {
+            newStatus = 'missing'
+            newScore = 0
+        }
+
+        const key = `${studentId}_${assignId}`
+        setGradeUpdates(prev => ({
+            ...prev,
+            [key]: {
+                score: newScore,
+                submission_status: newStatus
+            }
+        }))
     }
 
     const saveGrades = async () => {
@@ -111,21 +137,28 @@ export default function GradingGrid({ courseId }) {
 
         Object.entries(gradeUpdates).forEach(([key, value]) => {
             if (key.includes('_exam_')) {
-                // Exam Update: key = studentId_exam_examId
+                // Exam Update
                 const [studentId, _, examId] = key.split('_')
+                // value might be simple string/number from previous logic, or object if we unified it.
+                // But handleScoreChange now returns object for consistency or we can check type.
+                const val = typeof value === 'object' ? value.score : value
+
                 examUpdates.push({
                     student_id: studentId,
                     exam_id: examId,
-                    score: parseFloat(value || 0)
+                    score: parseFloat(val || 0)
                 })
             } else {
-                // Assignment Update: key = studentId_assignId
+                // Assignment Update
                 const [studentId, assignId] = key.split('_')
+                const val = typeof value === 'object' ? value.score : value
+                const status = typeof value === 'object' ? value.submission_status : 'submitted'
+
                 assignmentUpdates.push({
                     student_id: studentId,
                     assignment_id: assignId,
-                    score: parseFloat(value || 0),
-                    submission_status: 'submitted'
+                    score: parseFloat(val || 0),
+                    submission_status: status
                 })
             }
         })
@@ -217,16 +250,41 @@ export default function GradingGrid({ courseId }) {
                                 {assignments.map(assign => {
                                     const key = `${student.id}_${assign.id}`
                                     const sub = submissions[key]
-                                    const val = gradeUpdates[key] ?? sub?.score ?? 0
+                                    // Helper to get current value (either from updates or original)
+                                    const currentUpdate = gradeUpdates[key]
+                                    const currentScore = currentUpdate?.score ?? sub?.score ?? 0
+                                    const currentStatus = currentUpdate?.submission_status ?? sub?.submission_status ?? 'missing'
                                     const isMod = gradeUpdates[key] !== undefined
+
+                                    if (assign.assignment_type === 'regular') {
+                                        return (
+                                            <td key={assign.id} className="p-2 text-center border-r border-gray-50 bg-blue-50/10">
+                                                <button
+                                                    onClick={() => handleStatusToggle(student.id, assign.id, currentStatus, assign.max_score || 10)}
+                                                    className={`w-full py-1 px-2 rounded-lg text-xs font-bold transition-all
+                                                        ${currentStatus === 'submitted' ? 'bg-green-100 text-green-700 hover:bg-green-200' :
+                                                            currentStatus === 'late' ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200' :
+                                                                'bg-gray-100 text-gray-500 hover:bg-gray-200'}
+                                                        ${isMod ? 'ring-2 ring-blue-400' : ''}
+                                                    `}
+                                                >
+                                                    {currentStatus === 'submitted' ? 'ส่งแล้ว' :
+                                                        currentStatus === 'late' ? 'ส่งช้า' : 'ยังไม่ส่ง'}
+                                                    <div className="text-[10px] opacity-70">{currentScore} /{assign.max_score}</div>
+                                                </button>
+                                            </td>
+                                        )
+                                    }
+
+                                    // Special Assignment (Numeric Input)
                                     return (
                                         <td key={assign.id} className="p-2 text-center border-r border-gray-50 relative bg-blue-50/10">
                                             <input
-                                                type="number" min="0"
+                                                type="number" min="0" step="0.01"
                                                 className={`w-16 text-center border rounded-lg py-1 px-2 focus:ring-2 focus:ring-blue-500 outline-none
                                                     ${isMod ? 'bg-yellow-50 border-yellow-400 font-bold' : 'border-gray-200'}
                                                 `}
-                                                value={val}
+                                                value={currentScore}
                                                 onChange={e => handleScoreChange(key, e.target.value)}
                                             />
                                         </td>
@@ -285,10 +343,10 @@ export default function GradingGrid({ courseId }) {
                                 </div>
                             )}
 
-                            {(modalType === 'exam' || form.type === 'special') && (
+                            {(modalType === 'exam' || form.type === 'special' || form.type === 'regular') && (
                                 <div>
-                                    <label className="text-sm font-medium block mb-1">คะแนนเต็ม</label>
-                                    <input type="number" required className="ios-input" placeholder="20"
+                                    <label className="text-sm font-medium block mb-1">คะแนนเต็ม (Max Score)</label>
+                                    <input type="number" required className="ios-input" placeholder="10"
                                         value={form.max_score} onChange={e => setForm({ ...form, max_score: e.target.value })}
                                     />
                                 </div>
