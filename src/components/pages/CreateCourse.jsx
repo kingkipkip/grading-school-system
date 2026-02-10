@@ -31,9 +31,9 @@ export default function CreateCourse() {
         const { data: yearsData } = await supabase.from('academic_years').select('*, semesters(*)')
         if (yearsData) setYears(yearsData || [])
 
-        // If registrar, fetch all teachers
+        // If registrar, fetch all teachers and registrars
         if (profile?.role === 'registrar') {
-            const { data: teachersData } = await supabase.from('users').select('*').eq('role', 'teacher')
+            const { data: teachersData } = await supabase.from('users').select('*').in('role', ['teacher', 'registrar']).order('full_name')
             if (teachersData) setTeachers(teachersData)
         }
     }
