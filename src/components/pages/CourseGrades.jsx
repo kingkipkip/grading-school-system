@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
 import { Printer } from 'lucide-react'
+import PropTypes from 'prop-types'
 
 export default function CourseGrades({ courseId }) {
     const [students, setStudents] = useState([])
@@ -12,6 +13,7 @@ export default function CourseGrades({ courseId }) {
 
     useEffect(() => {
         fetchData()
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [courseId])
 
     const fetchData = async () => {
@@ -74,6 +76,8 @@ export default function CourseGrades({ courseId }) {
         return total
     }
 
+    if (loading) return <div className="text-center p-8">Loading Grades...</div>
+
     return (
         <div className="space-y-4">
             <div className="flex justify-between items-center mb-4">
@@ -127,4 +131,8 @@ export default function CourseGrades({ courseId }) {
             </div>
         </div>
     )
+}
+
+CourseGrades.propTypes = {
+    courseId: PropTypes.string.isRequired
 }

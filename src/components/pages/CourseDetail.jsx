@@ -6,6 +6,7 @@ import { ArrowLeft, Users, FileText, GraduationCap, Plus, Download, Settings } f
 import ImportStudents from './ImportStudents'
 import GradingGrid from './GradingGrid'
 import ExportSGSModal from './ExportSGSModal'
+import CourseGrades from './CourseGrades'
 
 export default function CourseDetail() {
   const { id } = useParams()

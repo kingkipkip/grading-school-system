@@ -178,6 +178,19 @@ CREATE POLICY "Public read academic years" ON public.academic_years FOR SELECT U
 CREATE POLICY "Public read semesters" ON public.semesters FOR SELECT USING (true);
 CREATE POLICY "Public read classrooms" ON public.classrooms FOR SELECT USING (true);
 
+-- Registrar Manage Structural Data (Academic Years, Semesters, Classrooms)
+CREATE POLICY "Registrar manage academic years" ON public.academic_years FOR ALL USING (
+    EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'registrar')
+);
+
+CREATE POLICY "Registrar manage semesters" ON public.semesters FOR ALL USING (
+    EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'registrar')
+);
+
+CREATE POLICY "Registrar manage classrooms" ON public.classrooms FOR ALL USING (
+    EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'registrar')
+);
+
 -- Users: Read All, Update Self, Registrar Update All
 CREATE POLICY "Read all users" ON public.users FOR SELECT USING (true);
 CREATE POLICY "Update self" ON public.users FOR UPDATE USING (auth.uid() = id);
