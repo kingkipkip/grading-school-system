@@ -12,7 +12,8 @@ export default function Register() {
     })
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState('')
-    const { signUp } = useAuthStore()
+    const [success, setSuccess] = useState(false)
+    const { signUp, signOut } = useAuthStore()
     const navigate = useNavigate()
 
     const handleSubmit = async (e) => {
@@ -22,16 +23,38 @@ export default function Register() {
 
         try {
             await signUp(formData.email, formData.password, formData.fullName, formData.role)
-            // Auto login or redirect to login? 
-            // Supabase auto signs in upon signup unless email confirmation is ON.
-            // Assuming default behavior: auto sign in.
-            alert('ลงทะเบียนสำเร็จ!')
-            navigate('/dashboard')
+            await signOut() // Ensure user is signed out so they can't access dashboard
+            setSuccess(true)
         } catch (err) {
             setError('เกิดข้อผิดพลาด: ' + err.message)
         } finally {
             setLoading(false)
         }
+    }
+
+    if (success) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-[#F2F2F7] p-4">
+                <div className="max-w-md w-full bg-white rounded-2xl shadow-xl overflow-hidden animate-fade-in p-8 text-center">
+                    <div className="mb-6 flex justify-center">
+                        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+                            <GraduationCap className="text-green-600" size={32} />
+                        </div>
+                    </div>
+                    <h1 className="text-2xl font-bold text-gray-900 mb-2">ลงทะเบียนสำเร็จ!</h1>
+                    <p className="text-gray-600 mb-8">
+                        กรุณารอให้เจ้าหน้าที่อนุมัติสิทธิ์การใช้งาน<br />
+                        จึงจะสามารถเข้าสู่ระบบได้
+                    </p>
+                    <Link
+                        to="/login"
+                        className="block w-full py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-colors"
+                    >
+                        กลับสู่หน้าเข้าสู่ระบบ
+                    </Link>
+                </div>
+            </div>
+        )
     }
 
     return (
@@ -100,14 +123,6 @@ export default function Register() {
                             <label className="block text-sm font-medium text-gray-700 mb-1">สถานะผู้ใช้งาน</label>
                             <div className="relative">
                                 <GraduationCap className="absolute left-3 top-3 text-gray-400" size={20} />
-                                {/* <select
-                                    className="pl-10 ios-input"
-                                    value={formData.role}
-                                    onChange={e => setFormData({ ...formData, role: e.target.value })}
-                                >
-                                    <option value="student">นักเรียน (Student)</option>
-                                    <option value="teacher">ครูผู้สอน (Teacher)</option>
-                                </select> */}
                                 <input
                                     type="text"
                                     className="pl-10 ios-input bg-gray-100 text-gray-500 cursor-not-allowed"
