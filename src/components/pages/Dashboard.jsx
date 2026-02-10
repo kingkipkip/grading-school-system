@@ -107,6 +107,39 @@ export default function Dashboard() {
                 )}
             </div>
 
+            {/* Registrar Quick Actions */}
+            {profile?.role === 'registrar' && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div onClick={() => navigate('/users')} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow cursor-pointer flex items-center gap-4">
+                        <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center text-purple-600">
+                            <User size={24} />
+                        </div>
+                        <div>
+                            <h3 className="font-bold text-gray-900">จัดการผู้ใช้งาน</h3>
+                            <p className="text-sm text-gray-500">อนุมัติครู, แต่งตั้งนายทะเบียน</p>
+                        </div>
+                    </div>
+                    <div onClick={() => navigate('/academic-years')} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow cursor-pointer flex items-center gap-4">
+                        <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center text-orange-600">
+                            <Clock size={24} />
+                        </div>
+                        <div>
+                            <h3 className="font-bold text-gray-900">ปีการศึกษา</h3>
+                            <p className="text-sm text-gray-500">จัดการปีการศึกษาและภาคเรียน</p>
+                        </div>
+                    </div>
+                    <div onClick={() => navigate('/classrooms')} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow cursor-pointer flex items-center gap-4">
+                        <div className="w-12 h-12 bg-pink-100 rounded-full flex items-center justify-center text-pink-600">
+                            <BookOpen size={24} />
+                        </div>
+                        <div>
+                            <h3 className="font-bold text-gray-900">จัดการห้องเรียน</h3>
+                            <p className="text-sm text-gray-500">เพิ่ม/ลบ ห้องเรียนในระบบ</p>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Course Grid */}
             <div>
                 <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
