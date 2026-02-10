@@ -14,6 +14,7 @@ export default function GradingGrid({ courseId }) {
     const [showModal, setShowModal] = useState(false)
     const [modalType, setModalType] = useState('assignment') // assignment | exam
     const [form, setForm] = useState({ title: '', type: 'regular', max_score: '' })
+    const [course, setCourse] = useState(null)
 
     const [gradeUpdates, setGradeUpdates] = useState({}) // track unsaved changes: key can be studentId_assignId OR studentId_exam_examId
 
@@ -23,6 +24,10 @@ export default function GradingGrid({ courseId }) {
 
     const fetchData = async () => {
         setLoading(true)
+        // 0. Fetch Course Details (Total Assignment Score)
+        const { data: courseData } = await supabase.from('courses').select('assignment_total_score').eq('id', courseId).single()
+        setCourse(courseData)
+
         // 1. Fetch Students
         const { data: enrollments } = await supabase.from('course_enrollments').select('student:students(*)').eq('course_id', courseId)
         const studentList = enrollments?.map(e => e.student) || []
@@ -55,6 +60,56 @@ export default function GradingGrid({ courseId }) {
         setLoading(false)
     }
 
+    // --- Dynamic Scoring Logic ---
+    const calculateRegularMax = (currentAssignments = assignments, currentCourse = course) => {
+        if (!currentCourse) return 0
+        const totalAssignmentScore = currentCourse.assignment_total_score || 50
+        const specialAssignments = currentAssignments.filter(a => a.assignment_type === 'special')
+        const totalSpecialScore = specialAssignments.reduce((sum, a) => sum + (a.max_score || 0), 0)
+
+        const regularAssignments = currentAssignments.filter(a => a.assignment_type === 'regular')
+        const regularCount = regularAssignments.length
+
+        if (regularCount === 0) return 0
+        return (totalAssignmentScore - totalSpecialScore) / regularCount
+    }
+
+    const regularMaxScore = calculateRegularMax()
+
+    const recalculateAllRegularScores = async (newAssignments) => {
+        // Calculate the NEW max score for regular assignments
+        const newMax = calculateRegularMax(newAssignments, course)
+        const regularAssigns = newAssignments.filter(a => a.assignment_type === 'regular')
+        if (regularAssigns.length === 0) return
+
+        // Fetch all existing submissions for these regular assignments
+        const { data: existingSubs } = await supabase
+            .from('submissions')
+            .select('*')
+            .in('assignment_id', regularAssigns.map(a => a.id))
+
+        if (!existingSubs || existingSubs.length === 0) return
+
+        // Prepare updates
+        const updates = existingSubs.map(sub => {
+            let newScore = 0
+            if (sub.submission_status === 'submitted') newScore = newMax
+            else if (sub.submission_status === 'late') newScore = newMax * 0.8
+            // missing is 0
+
+            return {
+                student_id: sub.student_id,
+                assignment_id: sub.assignment_id,
+                submission_status: sub.submission_status,
+                score: newScore
+            }
+        })
+
+        if (updates.length > 0) {
+            await supabase.from('submissions').upsert(updates, { onConflict: 'assignment_id, student_id' })
+        }
+    }
+
     const handleCreate = async (e) => {
         e.preventDefault()
 
@@ -63,11 +118,21 @@ export default function GradingGrid({ courseId }) {
                 course_id: courseId,
                 title: form.title,
                 assignment_type: form.type,
-                max_score: parseFloat(form.max_score || 0)
+                // If regular, stored max_score is irrelevant or can be 0, as we calculate dynamically.
+                // But for safety/reporting, we can store 0 or null.
+                max_score: form.type === 'special' ? parseFloat(form.max_score || 0) : 0
             }
             const { data, error } = await supabase.from('assignments').insert([payload]).select().single()
             if (data) {
-                // Auto-create submissions
+                // Determine new assignment list to recalculate scores
+                const newAssignmentsList = [...assignments, data]
+
+                // If we added a Regular OR Special assignment, the weight of Regular ones changes.
+                // So we always trigger recalculation for regular ones.
+                await recalculateAllRegularScores(newAssignmentsList)
+
+                // Auto-create submissions for the NEW assignment
+                const newMax = calculateRegularMax(newAssignmentsList, course)
                 const newSubs = students.map(s => ({
                     assignment_id: data.id,
                     student_id: s.id,
@@ -75,6 +140,7 @@ export default function GradingGrid({ courseId }) {
                     score: 0
                 }))
                 if (newSubs.length > 0) await supabase.from('submissions').insert(newSubs)
+
             } else if (error) alert(error.message)
 
         } else {
@@ -106,7 +172,10 @@ export default function GradingGrid({ courseId }) {
         setGradeUpdates(prev => ({ ...prev, [key]: { score: value, submission_status: 'submitted' } }))
     }
 
-    const handleStatusToggle = (studentId, assignId, currentStatus, maxScore) => {
+    const handleStatusToggle = (studentId, assignId, currentStatus) => {
+        // Use the DYNAMIC max score
+        const maxScore = regularMaxScore
+
         let newStatus = 'submitted'
         let newScore = maxScore
 
@@ -220,7 +289,9 @@ export default function GradingGrid({ courseId }) {
                                     <div className="font-bold text-gray-900">
                                         {a.title}
                                         <div className="text-xs font-normal text-gray-500">
-                                            {a.assignment_type === 'special' ? `Special (${a.max_score})` : 'Regular'}
+                                            {a.assignment_type === 'special'
+                                                ? `Special (${a.max_score})`
+                                                : `Regular (${regularMaxScore.toFixed(2)})`}
                                         </div>
                                     </div>
                                 </th>
@@ -260,7 +331,7 @@ export default function GradingGrid({ courseId }) {
                                         return (
                                             <td key={assign.id} className="p-2 text-center border-r border-gray-50 bg-blue-50/10">
                                                 <button
-                                                    onClick={() => handleStatusToggle(student.id, assign.id, currentStatus, assign.max_score || 10)}
+                                                    onClick={() => handleStatusToggle(student.id, assign.id, currentStatus)}
                                                     className={`w-full py-1 px-2 rounded-lg text-xs font-bold transition-all
                                                         ${currentStatus === 'submitted' ? 'bg-green-100 text-green-700 hover:bg-green-200' :
                                                             currentStatus === 'late' ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200' :
@@ -270,7 +341,7 @@ export default function GradingGrid({ courseId }) {
                                                 >
                                                     {currentStatus === 'submitted' ? 'ส่งแล้ว' :
                                                         currentStatus === 'late' ? 'ส่งช้า' : 'ยังไม่ส่ง'}
-                                                    <div className="text-[10px] opacity-70">{currentScore} /{assign.max_score}</div>
+                                                    <div className="text-[10px] opacity-70">{Number(currentScore).toFixed(2)}</div>
                                                 </button>
                                             </td>
                                         )
@@ -343,12 +414,18 @@ export default function GradingGrid({ courseId }) {
                                 </div>
                             )}
 
-                            {(modalType === 'exam' || form.type === 'special' || form.type === 'regular') && (
+                            {(modalType === 'exam' || form.type === 'special') && (
                                 <div>
                                     <label className="text-sm font-medium block mb-1">คะแนนเต็ม (Max Score)</label>
                                     <input type="number" required className="ios-input" placeholder="10"
                                         value={form.max_score} onChange={e => setForm({ ...form, max_score: e.target.value })}
                                     />
+                                </div>
+                            )}
+
+                            {modalType === 'assignment' && form.type === 'regular' && (
+                                <div className="bg-blue-50 text-blue-800 text-xs p-3 rounded-lg">
+                                    💡 คะแนนเต็มจะถูกคำนวณอัตโนมัติจากคะแนนรวมที่เหลือ
                                 </div>
                             )}
 
