@@ -8,7 +8,7 @@ export default function Register() {
         email: '',
         password: '',
         fullName: '',
-        role: 'student'
+        role: 'teacher'
     })
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState('')
@@ -100,20 +100,24 @@ export default function Register() {
                             <label className="block text-sm font-medium text-gray-700 mb-1">สถานะผู้ใช้งาน</label>
                             <div className="relative">
                                 <GraduationCap className="absolute left-3 top-3 text-gray-400" size={20} />
-                                <select
+                                {/* <select
                                     className="pl-10 ios-input"
                                     value={formData.role}
                                     onChange={e => setFormData({ ...formData, role: e.target.value })}
                                 >
                                     <option value="student">นักเรียน (Student)</option>
                                     <option value="teacher">ครูผู้สอน (Teacher)</option>
-                                </select>
+                                </select> */}
+                                <input
+                                    type="text"
+                                    className="pl-10 ios-input bg-gray-100 text-gray-500 cursor-not-allowed"
+                                    value="ครูผู้สอน (Teacher)"
+                                    disabled
+                                />
                             </div>
-                            {formData.role === 'teacher' && (
-                                <div className="mt-2 text-xs text-yellow-600 bg-yellow-50 p-2 rounded">
-                                    ⚠️ บัญชีครูผู้สอนจะต้องได้รับการอนุมัติจากนายทะเบียนก่อน จึงจะสามารถใช้งานได้
-                                </div>
-                            )}
+                            <div className="mt-2 text-xs text-yellow-600 bg-yellow-50 p-2 rounded">
+                                ⚠️ บัญชีครูผู้สอนจะต้องได้รับการอนุมัติจากนายทะเบียนก่อน จึงจะสามารถใช้งานได้
+                            </div>
                         </div>
 
 

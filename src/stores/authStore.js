@@ -72,7 +72,8 @@ export const useAuthStore = create((set) => ({
                     full_name: fullName,
                     role: role,
                     // Teachers need approval (false), others (students) auto-approved (true)
-                    is_approved: role !== 'teacher'
+                    // Always false (Pending) for now as we only allow teacher registration
+                    is_approved: false
                 }
             ])
 

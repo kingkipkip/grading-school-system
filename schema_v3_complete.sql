@@ -64,7 +64,7 @@ CREATE TABLE public.users (
     email TEXT NOT NULL,
     full_name TEXT NOT NULL,
     role TEXT NOT NULL CHECK (role IN ('teacher', 'student', 'registrar')),
-    is_approved BOOLEAN DEFAULT true, -- Default true for safety, code sets false for new teachers
+    is_approved BOOLEAN DEFAULT false, -- Default false (Pending) for safety
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -181,6 +181,7 @@ CREATE POLICY "Public read classrooms" ON public.classrooms FOR SELECT USING (tr
 -- Users: Read All, Update Self, Registrar Update All
 CREATE POLICY "Read all users" ON public.users FOR SELECT USING (true);
 CREATE POLICY "Update self" ON public.users FOR UPDATE USING (auth.uid() = id);
+CREATE POLICY "Allow users to insert own profile" ON public.users FOR INSERT WITH CHECK (auth.uid() = id);
 CREATE POLICY "Registrar update users" ON public.users FOR UPDATE USING (
     EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'registrar')
 );
