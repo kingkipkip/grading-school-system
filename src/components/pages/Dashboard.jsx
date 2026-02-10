@@ -50,6 +50,43 @@ export default function Dashboard() {
         setLoading(false)
     }
 
+    // --- Student Claim Logic ---
+    const [showClaimModal, setShowClaimModal] = useState(false)
+    const [claimId, setClaimId] = useState('')
+    const [claimError, setClaimError] = useState('')
+
+    useEffect(() => {
+        if (profile?.role === 'student' && !loading) {
+            checkStudentLink()
+        }
+    }, [profile, loading])
+
+    const checkStudentLink = async () => {
+        // Check if this user is linked to any student record
+        const { data } = await supabase.from('students').select('id').eq('user_id', profile.id).maybeSingle()
+        if (!data) {
+            setShowClaimModal(true)
+        }
+    }
+
+    const handleClaimSubmit = async (e) => {
+        e.preventDefault()
+        setClaimError('')
+
+        // Call the Secure RPC function
+        const { data: success, error } = await supabase.rpc('claim_student_id', { student_id_input: claimId })
+
+        if (error) {
+            setClaimError(error.message)
+        } else if (success) {
+            alert('เชื่อมต่อข้อมูลสำเร็จ!')
+            setShowClaimModal(false)
+            fetchCourses() // Reload courses
+        } else {
+            setClaimError('ไม่พบรหัสนักเรียนนี้ หรือถูกใช้งานไปแล้ว')
+        }
+    }
+
     return (
         <div className="space-y-8 animate-fade-in">
             {/* Header */}
@@ -69,8 +106,6 @@ export default function Dashboard() {
                     </Link>
                 )}
             </div>
-
-            {/* Stats / Quick Actions (Optional) */}
 
             {/* Course Grid */}
             <div>
@@ -123,6 +158,44 @@ export default function Dashboard() {
                     </div>
                 )}
             </div>
+
+            {/* Claim Student ID Modal */}
+            {showClaimModal && (
+                <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+                    <div className="bg-white rounded-2xl max-w-sm w-full p-8 animate-fade-in shadow-2xl">
+                        <div className="text-center mb-6">
+                            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4 text-blue-600">
+                                <User size={32} />
+                            </div>
+                            <h2 className="text-xl font-bold text-gray-900">เชื่อมต่อข้อมูลนักเรียน</h2>
+                            <p className="text-gray-500 text-sm mt-2">กรุณาระบุรหัสนักเรียนของคุณ เพื่อดูรายวิชาและคะแนนสอบ</p>
+                        </div>
+
+                        {claimError && (
+                            <div className="mb-4 p-3 bg-red-50 text-red-600 text-sm rounded-lg flex items-center gap-2">
+                                <span className="font-bold">Error:</span> {claimError}
+                            </div>
+                        )}
+
+                        <form onSubmit={handleClaimSubmit} className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">รหัสนักเรียน (Student ID)</label>
+                                <input
+                                    type="text"
+                                    required
+                                    placeholder="เช่น 66001"
+                                    className="ios-input text-center text-lg tracking-widest font-mono"
+                                    value={claimId}
+                                    onChange={e => setClaimId(e.target.value)}
+                                />
+                            </div>
+                            <button type="submit" className="w-full ios-btn bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-200">
+                                ยืนยันข้อมูล
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }
