@@ -111,5 +111,17 @@ export const useAuthStore = create((set) => ({
     signOut: async () => {
         await supabase.auth.signOut()
         set({ user: null, profile: null })
+    },
+
+    refreshProfile: async () => {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session?.user) {
+            const { data } = await supabase
+                .from('users')
+                .select('*')
+                .eq('id', session.user.id)
+                .maybeSingle()
+            set({ user: session.user, profile: data })
+        }
     }
 }))

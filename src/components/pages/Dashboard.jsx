@@ -5,13 +5,18 @@ import { Link, useNavigate } from 'react-router-dom'
 import { BookOpen, Plus, User, Clock, ArrowRight } from 'lucide-react'
 
 export default function Dashboard() {
-    const { profile } = useAuthStore()
+    const { profile, refreshProfile } = useAuthStore()
     const navigate = useNavigate()
     const [courses, setCourses] = useState([])
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
-        if (profile) fetchCourses()
+        if (profile) {
+            fetchCourses()
+        } else {
+            // If profile is missing (but we are in protected route), try refreshing it
+            refreshProfile()
+        }
     }, [profile])
 
     const fetchCourses = async () => {
