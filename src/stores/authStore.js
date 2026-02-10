@@ -19,7 +19,7 @@ export const useAuthStore = create((set) => ({
                 .from('users')
                 .select('*')
                 .eq('id', user.id)
-                .single()
+                .maybeSingle()
             profile = data
         }
 
@@ -35,7 +35,7 @@ export const useAuthStore = create((set) => ({
                     .from('users')
                     .select('*')
                     .eq('id', user.id)
-                    .single()
+                    .maybeSingle()
                 profile = data
             }
 
