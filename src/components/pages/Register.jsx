@@ -107,10 +107,15 @@ export default function Register() {
                                 >
                                     <option value="student">นักเรียน (Student)</option>
                                     <option value="teacher">ครูผู้สอน (Teacher)</option>
-                                    <option value="registrar">นายทะเบียน (Registrar)</option>
                                 </select>
                             </div>
+                            {formData.role === 'teacher' && (
+                                <div className="mt-2 text-xs text-yellow-600 bg-yellow-50 p-2 rounded">
+                                    ⚠️ บัญชีครูผู้สอนจะต้องได้รับการอนุมัติจากนายทะเบียนก่อน จึงจะสามารถใช้งานได้
+                                </div>
+                            )}
                         </div>
+
 
                         <button
                             type="submit"
@@ -125,7 +130,7 @@ export default function Register() {
                         มีบัญชีอยู่แล้ว? <Link to="/login" className="text-blue-600 hover:underline">เข้าสู่ระบบ</Link>
                     </div>
                 </div>
-            </div>
-        </div>
+            </div >
+        </div >
     )
 }

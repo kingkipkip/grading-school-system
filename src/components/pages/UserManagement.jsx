@@ -60,6 +60,7 @@ export default function UserManagement() {
                             <th className="p-4 font-semibold text-gray-600">ผู้ใช้งาน</th>
                             <th className="p-4 font-semibold text-gray-600">อีเมล</th>
                             <th className="p-4 font-semibold text-gray-600">บทบาท</th>
+                            <th className="p-4 font-semibold text-gray-600">สถานะ</th>
                             <th className="p-4 font-semibold text-gray-600">จัดการ</th>
                         </tr>
                     </thead>
@@ -86,6 +87,17 @@ export default function UserManagement() {
                                     </span>
                                 </td>
                                 <td className="p-4">
+                                    {user.is_approved === false ? (
+                                        <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
+                                            รออนุมัติ
+                                        </span>
+                                    ) : (
+                                        <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800">
+                                            อนุมัติแล้ว
+                                        </span>
+                                    )}
+                                </td>
+                                <td className="p-4 flex items-center gap-2">
                                     <select
                                         className="text-sm border-gray-200 rounded-lg p-1 bg-white border shadow-sm focus:ring-2 focus:ring-blue-500"
                                         value={user.role}
@@ -95,6 +107,20 @@ export default function UserManagement() {
                                         <option value="teacher">Teacher</option>
                                         <option value="registrar">Registrar</option>
                                     </select>
+
+                                    {user.role === 'teacher' && user.is_approved === false && (
+                                        <button
+                                            onClick={async () => {
+                                                if (!confirm('ยืนยันการอนุมัติบัญชีครู?')) return
+                                                const { error } = await supabase.from('users').update({ is_approved: true }).eq('id', user.id)
+                                                if (error) alert(error.message)
+                                                else fetchUsers()
+                                            }}
+                                            className="px-3 py-1 bg-green-600 text-white rounded-lg text-xs hover:bg-green-700 shadow-sm"
+                                        >
+                                            อนุมัติ
+                                        </button>
+                                    )}
                                 </td>
                             </tr>
                         ))}
