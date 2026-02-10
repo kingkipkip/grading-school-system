@@ -23,6 +23,13 @@ export const useAuthStore = create((set) => ({
             profile = data
         }
 
+        // Safety: If user exists but no profile found (e.g. after DB reset), force logout
+        if (user && !profile) {
+            await supabase.auth.signOut()
+            set({ user: null, profile: null, loading: false })
+            return
+        }
+
         set({ user, profile, loading: false })
 
         // Listen for changes
