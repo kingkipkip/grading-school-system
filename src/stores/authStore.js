@@ -56,6 +56,18 @@ export const useAuthStore = create((set) => ({
             password
         })
         if (error) throw error
+
+        // Manually fetch profile to ensure state is ready before navigation
+        if (data.user) {
+            const { data: profile } = await supabase
+                .from('users')
+                .select('*')
+                .eq('id', data.user.id)
+                .maybeSingle()
+
+            set({ user: data.user, profile, loading: false })
+        }
+
         return data
     },
 
