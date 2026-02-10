@@ -77,9 +77,10 @@ export const useAuthStore = create((set) => ({
             ])
 
             if (profileError) {
-                // Optional: Rollback auth user creation if profile fails? 
-                // For MVP, just throw error. User exists in Auth but not public table is a bad state, 
-                // but we can handle it by checking "if user && !profile" then force profile creation on login.
+                // Handle duplicate key (user already exists in public table)
+                if (profileError.code === '23505') {
+                    throw new Error('อีเมลนี้ถูกลงทะเบียนไว้แล้ว โปรดเข้าสู่ระบบหรือใช้อีเมลอื่น')
+                }
                 throw profileError
             }
         }
