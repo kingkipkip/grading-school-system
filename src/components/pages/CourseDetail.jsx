@@ -39,6 +39,40 @@ export default function CourseDetail() {
     setLoading(false)
   }
 
+  // Edit Modal State
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [editForm, setEditForm] = useState({
+    course_code: '',
+    course_name: '',
+    description: '',
+    academic_year: ''
+  })
+
+  const openEditModal = () => {
+    setEditForm({
+      course_code: course.course_code,
+      course_name: course.course_name,
+      description: course.description || '',
+      academic_year: course.academic_year || ''
+    })
+    setShowEditModal(true)
+  }
+
+  const handleUpdateCourse = async (e) => {
+    e.preventDefault()
+    const { error } = await supabase
+      .from('courses')
+      .update(editForm)
+      .eq('id', id)
+
+    if (error) {
+      alert('Error updating course: ' + error.message)
+    } else {
+      await fetchCourseData()
+      setShowEditModal(false)
+    }
+  }
+
   if (loading) return <div className="p-8 text-center">Loading Course...</div>
   if (!course) return <div className="p-8 text-center">Course not found</div>
 
@@ -53,7 +87,7 @@ export default function CourseDetail() {
           <div>
             <div className="flex items-center gap-3 mb-1">
               <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-bold">{course.course_code}</span>
-              <span className="text-gray-500 text-sm">ปีการศึกษา {course.academic_year}</span>
+              <span className="text-gray-500 text-sm">ปีการศึกษา {course.academic_year || 'N/A'}</span>
             </div>
             <h1 className="text-2xl font-bold text-gray-900">{course.course_name}</h1>
             <p className="text-gray-500 text-sm mt-1">{students.length} นักเรียนลงทะเบียน</p>
@@ -68,7 +102,10 @@ export default function CourseDetail() {
               >
                 <Download size={18} /> นำเข้านักเรียน
               </button>
-              <button className="ios-btn bg-[#007AFF] text-white hover:bg-[#0062cc]">
+              <button
+                onClick={openEditModal}
+                className="ios-btn bg-[#007AFF] text-white hover:bg-[#0062cc]"
+              >
                 <Settings size={18} /> ตั้งค่ารายวิชา
               </button>
             </div>
@@ -161,6 +198,49 @@ export default function CourseDetail() {
               // No need to close explicitly, component handles it with timeout
             }}
           />
+        </div>
+      )}
+
+      {/* Edit Course Modal */}
+      {showEditModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-sm w-full p-6 animate-fade-in shadow-2xl">
+            <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+              <Settings size={20} className="text-blue-600" /> ตั้งค่ารายวิชา
+            </h3>
+            <form onSubmit={handleUpdateCourse} className="space-y-4">
+              <div>
+                <label className="text-sm font-medium block mb-1">รหัสวิชา</label>
+                <input type="text" required className="ios-input"
+                  value={editForm.course_code} onChange={e => setEditForm({ ...editForm, course_code: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium block mb-1">ชื่อวิชา</label>
+                <input type="text" required className="ios-input"
+                  value={editForm.course_name} onChange={e => setEditForm({ ...editForm, course_name: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium block mb-1">ปีการศึกษา</label>
+                <input type="text" required className="ios-input" placeholder="เช่น 2567"
+                  value={editForm.academic_year} onChange={e => setEditForm({ ...editForm, academic_year: e.target.value })}
+                />
+                <p className="text-xs text-gray-400 mt-1">ระบุปีการศึกษา (จะแสดงผลแทน N/A)</p>
+              </div>
+              <div>
+                <label className="text-sm font-medium block mb-1">คำอธิบาย</label>
+                <textarea className="ios-input" rows="3"
+                  value={editForm.description} onChange={e => setEditForm({ ...editForm, description: e.target.value })}
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-4">
+                <button type="button" onClick={() => setShowEditModal(false)} className="px-4 py-2 hover:bg-gray-100 rounded-lg text-sm">ยกเลิก</button>
+                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium">บันทึกการแก้ไข</button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>
