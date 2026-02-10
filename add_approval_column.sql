@@ -1,16 +1,16 @@
--- Add is_approved column to users table
+
 ALTER TABLE public.users ADD COLUMN IF NOT EXISTS is_approved BOOLEAN DEFAULT true;
 
--- Update existing users to be approved by default
-UPDATE public.users SET is_approved = true WHERE is_approved IS NULL;
+-- Ensure RLS allows updating this column by Registrar
+-- The existing policy "Teachers manage users" (if it existed) or "Read all users" doesn't cover UPDATE by Registrar on specific fields?
+-- "Update self" exists.
 
--- Policy: Everyone can read is_approved
--- (Already covered by "Read all users" policy: CREATE POLICY "Read all users" ON public.users FOR SELECT USING (true);)
+-- We need a policy for Registrar to UPDATE other users' is_approved status.
+-- Let's check if we need to add a policy.
+-- Schema check showed NO Update policy for Registrar on Users table! Only "Update self".
+-- So UserManagement.jsx "Approve" button would FAIL currently.
 
--- Policy updates might be needed if we want to RESTRICT unapproved users from doing things, 
--- but we will handle this primarily in the Frontend/AuthStore for now (User Experience),
--- and RLS policies already rely on Roles. Unapproved Teacher still has 'teacher' role in DB? 
--- Yes, but we will block login.
-
--- Optional: Create a specific function to approve user if we want strict security, 
--- but allowing Registrars to UPDATE users (which they already can) is sufficient.
+-- Add Policy for Registrar to Update Users
+CREATE POLICY "Registrar update users" ON public.users FOR UPDATE USING (
+    EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'registrar')
+);

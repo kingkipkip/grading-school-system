@@ -70,7 +70,9 @@ export const useAuthStore = create((set) => ({
                     id: authData.user.id,
                     email: email,
                     full_name: fullName,
-                    role: role
+                    role: role,
+                    // Teachers need approval (false), others (students) auto-approved (true)
+                    is_approved: role !== 'teacher'
                 }
             ])
 
